@@ -56,6 +56,7 @@ pub mod pallet {
 	};
 	use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
 	use frame_system::pallet_prelude::*;
+	use frame_support::sp_tracing::info;
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -94,7 +95,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn fund_count)]
-	pub type FundCount<T> = StorageValue<_, FundIndex>;
+	pub type FundCount<T> = StorageValue<_, FundIndex, ValueQuery>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -191,17 +192,46 @@ pub mod pallet {
 			let creator = ensure_signed(origin)?;
 			let now = <frame_system::Pallet<T>>::block_number();
 			ensure!(end > now, Error::<T>::EndTooEarly);
+
+			// pub const SubmissionDeposit: u128 = 10; in runtime
 			let deposit = T::SubmissionDeposit::get();
+			// info!("Deposit {:?}", deposit);
+			
+			
+			// fn withdraw(
+			// 	who: &AccountId,
+			// 	value: Self::Balance,
+			// 	reasons: WithdrawReasons,
+			// 	liveness: ExistenceRequirement
+			// ) -> Result<Self::NegativeImbalance, DispatchError>
+			// Removes some free balance from who account for reason if possible. If liveness is KeepAlive, then no less than ExistentialDeposit must be left remaining.
+			
+			// This checks any locks, vesting, and liquidity requirements. If the removal is not possible, then it returns Err.
+			
+			// If the operation is successful, this will return Ok with a NegativeImbalance whose value is value.
 			let imb = T::Currency::withdraw(
 				&creator,
 				deposit,
 				WithdrawReasons::TRANSFER,
 				ExistenceRequirement::AllowDeath,
 			)?;
+			let index: FundIndex = <FundCount<T>>::get();
 
-			let index = <FundCount<T>>::get().expect("Not and integer");
+			info!("Fund index {:?}", index);
+
 			<FundCount<T>>::put(index.checked_add(1).ok_or(Error::<T>::StorageOverflow)?);
+            
+            // fn deposit_creating(
+			// 	who: &AccountId,
+			// 	value: Self::Balance
+			// ) -> Self::PositiveImbalance
+			// Adds up to value to the free balance of who. If who doesn’t exist, it is created.
+			
+			// Infallible.
 
+			// fn resolve_creating(who: &AccountId, value: Self::NegativeImbalance)
+            // Similar to deposit_creating, only accepts a NegativeImbalance and returns nothing on success.
+			// Negative imbalances are created when there is cut like validator slashed, transaction fees are collected
 			T::Currency::resolve_creating(&Self::fund_account_id(index), imb);
 
 			<Funds<T>>::insert(

@@ -140,6 +140,7 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 42;
 }
 
+
 // Configure FRAME pallets to include in runtime.
 
 impl frame_system::Config for Runtime {
@@ -190,13 +191,15 @@ impl frame_system::Config for Runtime {
 	/// This is used as an identifier of the chain. 42 is the generic substrate prefix.
 	type SS58Prefix = SS58Prefix;
 	/// The set code logic, just the default since we're not a parachain.
-	type OnSetCode = ();
+	type OnSetCode = ();	
 }
 
 impl pallet_randomness_collective_flip::Config for Runtime {}
 
 impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
+	// Crowdfunding 
+	
 }
 
 impl pallet_grandpa::Config for Runtime {
@@ -265,9 +268,22 @@ impl pallet_sudo::Config for Runtime {
 	type Call = Call;
 }
 
+
+// Crowdfunding pallet
+parameter_types! {
+	pub const SubmissionDeposit: u128 = 10;
+	pub const MinContribution: u128 = 10;
+	pub const RetirementPeriod: u32 = 10;
+}
+
 /// Configure the pallet-template in pallets/template.
 impl pallet_template::Config for Runtime {
 	type Event = Event;
+
+	type Currency = Balances;
+	type SubmissionDeposit = SubmissionDeposit;
+	type MinContribution = MinContribution;
+	type RetirementPeriod = RetirementPeriod;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
